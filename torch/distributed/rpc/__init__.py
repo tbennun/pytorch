@@ -35,10 +35,13 @@ if is_available():
 
     if sys.platform != 'win32':
         from .options import TensorPipeRpcBackendOptions  # noqa: F401
+        _default_rpc_backend = BackendType.TENSORPIPE
+    else:
+        _default_rpc_backend = BackendType.PROCESS_GROUP
 
     def init_rpc(
         name,
-        backend=BackendType.TENSORPIPE,
+        backend=_default_rpc_backend,
         rank=-1,
         world_size=None,
         rpc_backend_options=None,
@@ -127,7 +130,7 @@ if is_available():
 
 
     def _init_rpc_backend(
-        backend=backend_registry.BackendType.TENSORPIPE,
+        backend=_default_rpc_backend,
         store=None,
         name=None,
         rank=-1,
