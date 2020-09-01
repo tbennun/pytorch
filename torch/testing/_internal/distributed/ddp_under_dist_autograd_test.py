@@ -19,7 +19,7 @@ from torch.testing._internal.common_distributed import (
     requires_nccl,
     skip_if_lt_x_gpu,
 )
-from torch.testing._internal.dist_utils import dist_init
+from torch.testing._internal.dist_utils import dist_init, INIT_METHOD_TEMPLATE
 from torch.testing._internal.distributed.rpc.rpc_agent_test_fixture import (
     RpcAgentTestFixture,
 )
@@ -328,7 +328,7 @@ class DdpUnderDistAutogradTest(RpcAgentTestFixture):
         gLogger.info("The remote worker is running.")
         dist.init_process_group(
             backend="gloo",
-            init_method="file://{}".format(self.file_name),
+            init_method=INIT_METHOD_TEMPLATE.format(file_name=self.file_name),
             world_size=self.world_size,
             rank=self.rank,
         )
@@ -345,7 +345,7 @@ class DdpUnderDistAutogradTest(RpcAgentTestFixture):
         )
         dist.init_process_group(
             backend="gloo",
-            init_method="file://{}".format(self.file_name),
+            init_method=INIT_METHOD_TEMPLATE.format(file_name=self.file_name),
             world_size=self.world_size,
             rank=self.rank,
         )
@@ -362,7 +362,7 @@ class DdpUnderDistAutogradTest(RpcAgentTestFixture):
         gLogger.info("Running the master process...")
         dist.init_process_group(
             backend="gloo",
-            init_method="file://{}".format(self.file_name),
+            init_method=INIT_METHOD_TEMPLATE.format(file_name=self.file_name),
             world_size=self.world_size,
             rank=self.rank,
         )
@@ -499,7 +499,7 @@ class DdpComparisonTest(RpcAgentTestFixture):
         torch.manual_seed(self.rank)
         dist.init_process_group(
             backend="gloo",
-            init_method="file://{}".format(self.file_name),
+            init_method=INIT_METHOD_TEMPLATE.format(file_name=self.file_name),
             world_size=self.world_size,
             rank=self.rank,
         )
@@ -566,7 +566,7 @@ class DdpComparisonTest(RpcAgentTestFixture):
         torch.manual_seed(self.rank)
         dist.init_process_group(
             backend="gloo",
-            init_method="file://{}".format(self.file_name),
+            init_method=INIT_METHOD_TEMPLATE.format(file_name=self.file_name),
             world_size=self.world_size,
             rank=self.rank,
         )
@@ -603,7 +603,7 @@ class DdpComparisonTest(RpcAgentTestFixture):
         torch.manual_seed(self.rank)
         dist.init_process_group(
             backend="gloo",
-            init_method="file://{}".format(self.file_name),
+            init_method=INIT_METHOD_TEMPLATE.format(file_name=self.file_name),
             world_size=self.world_size,
             rank=self.rank,
         )
@@ -649,7 +649,7 @@ class DdpComparisonTest(RpcAgentTestFixture):
         torch.manual_seed(self.rank)
         dist.init_process_group(
             backend="gloo",
-            init_method="file://{}".format(self.file_name),
+            init_method=INIT_METHOD_TEMPLATE.format(file_name=self.file_name),
             world_size=self.world_size,
             rank=self.rank,
         )
