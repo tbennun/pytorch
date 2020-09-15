@@ -1,6 +1,7 @@
 #include <c10/util/Optional.h>
 #include <c10/core/ScalarType.h>
 #include <torch/csrc/autograd/VariableTypeUtils.h>
+#include <torch/csrc/autograd/FunctionsManual.h>
 #include <torch/csrc/utils/memory.h>
 #include <torch/csrc/autograd/utils/error_messages.h>
 #include <torch/csrc/autograd/autograd.h>
@@ -214,6 +215,24 @@ Tensor & copy_(Tensor & self, const Tensor & src, bool non_blocking) {
   }
   increment_version(self);
   rebase_history(self , std::move(grad_fn));
+
+  if (isDifferentiableType(self.scalar_type()) &&
+      (generated::details::isFwGradDefined(self) || generated::details::isFwGradDefined(src))) {
+    auto self_fw_grad = generated::details::toLegacyFwGrad(self);
+    auto src_fw_grad = generated::details::toLegacyFwGrad(src);
+    Tensor new_fw_grad;
+    if (self_fw_grad.defined()) {
+      if (src_fw_grad.defined()) {
+        new_fw_grad = self_fw_grad.copy_(src_fw_grad);
+      } else {
+        new_fw_grad = self_fw_grad.fill_(0);
+      }
+    } else {
+      new_fw_grad = src_fw_grad;
+    }
+    self.set_fw_grad(new_fw_grad, /* level */ 0);
+  }
+
   return self;
 }
 
@@ -229,6 +248,11 @@ Tensor& resize_(
     at::AutoNonVariableTypeMode non_var_type_mode(true);
     self_.resize_(size, std::move(optional_memory_format));
   }
+
+  if (self.fw_grad(/* level */ 0).defined()) {
+    AT_ERROR("cannot resize variables that has a forward grad");
+  }
+
   return self;
 }
 
@@ -245,6 +269,11 @@ Tensor& resize_as_(
     at::AutoNonVariableTypeMode non_var_type_mode(true);
     at::resize_as_(self_, the_template_, std::move(optional_memory_format));
   }
+
+  // Handle fw grad
+  if (self.fw_grad(/* level */ 0).defined()) {
+    AT_ERROR("cannot resize variables that has a forward grad");
+  }
   return self;
 }
 
@@ -252,6 +281,13 @@ Tensor detach(const Tensor & self) {
   RECORD_FUNCTION("detach", std::vector<c10::IValue>({self}));
   auto result = make_variable_non_differentiable_view(self, self, /*allow_tensor_metadata_change=*/false);
   namedinference::propagate_names(result, self);
+
+  // detach only backward gradients
+  if (self.fw_grad(/* level */ 0).defined()) {
+    auto new_fw_grad = self.fw_grad(/* level */ 0);
+    result.set_fw_grad(new_fw_grad, /* level */ 0);
+  }
+
   return result;
 }
 

@@ -70,5 +70,14 @@ TORCH_API variable_list grad(
     bool create_graph = false,
     bool allow_unused = false);
 
+namespace forward_ad {
+
+TORCH_API uint64_t enter_dual_level();
+TORCH_API void exit_dual_level(int64_t level);
+
+TORCH_API at::Tensor make_dual(const at::Tensor& primal, at::Tensor tangent, int64_t level=0);
+TORCH_API std::pair<at::Tensor, at::Tensor> unpack_dual(at::Tensor tensor, int64_t level=0);
+
+} // namespace forward_ad
 } // namespace autograd
 } // namespace torch

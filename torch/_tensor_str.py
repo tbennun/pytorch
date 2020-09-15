@@ -279,6 +279,8 @@ def _str_intern(self):
     indent = len(prefix)
     suffixes = []
 
+    self, tangent = torch.autograd.forward_ad.unpack_dual(self)
+
     # Note [Print tensor device]:
     # A general logic here is we only print device when it doesn't match
     # the device specified in default tensor type.
@@ -353,6 +355,9 @@ def _str_intern(self):
 
     if self.layout != torch.strided:
         suffixes.append('layout=' + str(self.layout))
+
+    if tangent is not None:
+        suffixes.append('tangent={}'.format(tangent))
 
     if self.grad_fn is not None:
         name = type(self.grad_fn).__name__
