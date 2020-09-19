@@ -88,7 +88,7 @@ Reducer::Reducer(
            variable_index++) {
         auto& variable = replicas_[replica_index][variable_index];
         const auto index = VariableIndex{
-#ifdef _WIN32
+#ifdef _MSC_VER
             replica_index, variable_index
 #else
             .replica_index = replica_index,
@@ -454,7 +454,7 @@ void Reducer::push_rebuilt_params_for_all_indices() {
     for (size_t variable_index = 0; variable_index < variable_count;
          ++variable_index) {
       const auto index = VariableIndex{
-#ifdef _WIN32
+#ifdef _MSC_VER
           replica_index, variable_index
 #else
           .replica_index = replica_index,
@@ -819,7 +819,7 @@ void Reducer::initialize_buckets(
           variable_index < variable_locators_.size(),
           "Out of range variable index specified.");
       variable_locators_[variable_index] = VariableLocator{
-#ifdef _WIN32
+#ifdef _MSC_VER
           bucket_index,
           intra_bucket_index++,
 #else
