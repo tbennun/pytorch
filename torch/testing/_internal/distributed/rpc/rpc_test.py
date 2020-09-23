@@ -21,7 +21,7 @@ from torch.distributed.rpc.internal import (
     _internal_rpc_pickler,
     _build_rpc_profiling_key,
 )
-from torch.testing._internal.common_distributed import skip_if_lt_x_gpu, skip_if_win32
+from torch.testing._internal.common_distributed import skip_if_lt_x_gpu
 from torch.testing._internal.common_utils import IS_MACOS, load_tests
 from torch.testing._internal.dist_utils import (
     dist_init,
@@ -3245,7 +3245,6 @@ class RpcTest(RpcAgentTestFixture):
         rpc.shutdown()
 
     @dist_init
-    @skip_if_win32()
     def test_wait_all_with_exception(self):
         futs = []
         dst = worker_name((self.rank + 1) % self.world_size)
@@ -3256,7 +3255,6 @@ class RpcTest(RpcAgentTestFixture):
             ret = torch.futures.wait_all(futs)
 
     @dist_init
-    @skip_if_win32()
     def test_wait_all_with_partial_exception(self):
         futs = []
         dst = worker_name((self.rank + 1) % self.world_size)
