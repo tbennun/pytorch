@@ -45,10 +45,15 @@ if not c10d.is_available():
 
 if platform == 'darwin':
     LOOPBACK = 'lo0'
-elif platform == 'win32':
-    LOOPBACK = 'Ethernet 2'
 else:
     LOOPBACK = 'lo'
+
+
+def create_device():
+    if sys.platform == 'win32':
+        return c10d.ProcessGroupGloo.create_device(hostname="127.0.0.1")
+    else:
+        return c10d.ProcessGroupGloo.create_device(interface=LOOPBACK)
 
 
 def gpus_for_rank(world_size):
@@ -594,6 +599,8 @@ class TimeoutTest(TestCase):
 class ProcessGroupGlooTest(MultiProcessTestCase):
     def setUp(self):
         super(ProcessGroupGlooTest, self).setUp()
+
+        # For Windows platform, Python does not support fork, change it to spawn here.
         if sys.platform == 'win32':
             self._spawn_processes()
         else:
@@ -601,7 +608,7 @@ class ProcessGroupGlooTest(MultiProcessTestCase):
 
     def opts(self, threads=2):
         opts = c10d.ProcessGroupGloo.Options()
-        opts.devices = [c10d.ProcessGroupGloo.create_device(interface=LOOPBACK)]
+        opts.devices = [create_device()]
         opts.timeout = 5.0
         opts.threads = threads
         return opts
@@ -611,8 +618,8 @@ class ProcessGroupGlooTest(MultiProcessTestCase):
         opts = c10d.ProcessGroupGloo.Options()
         opts.timeout = 5.0
         opts.devices = [
-            c10d.ProcessGroupGloo.create_device(interface=LOOPBACK),
-            c10d.ProcessGroupGloo.create_device(interface=LOOPBACK),
+            create_device(),
+            create_device(),
         ]
         pg = c10d.ProcessGroupGloo(store, self.rank, self.world_size, opts)
 
@@ -2082,7 +2089,7 @@ class DistributedDataParallelTest(MultiProcessTestCase):
     def _test_gloo_backend(self, devices, device_ids, multi_device=False):
         store = c10d.FileStore(self.file_name, self.world_size)
         options = c10d.ProcessGroupGloo.Options()
-        options.devices = [c10d.ProcessGroupGloo.create_device(interface=LOOPBACK)]
+        options.devices = [create_device()]
         process_group = c10d.ProcessGroupGloo(store, self.rank, self.world_size, options)
         self._test_ddp_with_process_group(process_group, devices, device_ids, multi_device)
 
@@ -3830,7 +3837,7 @@ class CommTest(MultiProcessTestCase):
     def test_broadcast_coalesced_gloo_cuda(self):
         store = c10d.FileStore(self.file_name, self.world_size)
         options = c10d.ProcessGroupGloo.Options()
-        options.devices = [c10d.ProcessGroupGloo.create_device(interface=LOOPBACK)]
+        options.devices = [create_device()]
         process_group = c10d.ProcessGroupGloo(store, self.rank, self.world_size, options)
         device = torch.device("cuda:%d" % self.rank)
         ranks = list(range(self.world_size))
@@ -3841,7 +3848,7 @@ class CommTest(MultiProcessTestCase):
     def test_broadcast_coalesced_gloo_cpu(self):
         store = c10d.FileStore(self.file_name, self.world_size)
         options = c10d.ProcessGroupGloo.Options()
-        options.devices = [c10d.ProcessGroupGloo.create_device(interface=LOOPBACK)]
+        options.devices = [create_device()]
         process_group = c10d.ProcessGroupGloo(store, self.rank, self.world_size, options)
         device = torch.device("cpu")
         ranks = list(range(self.world_size))
