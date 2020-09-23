@@ -307,6 +307,10 @@ int64_t FileStore::getNumKeys() {
   throw std::runtime_error("getNumKeys not implemented for FileStore");
 }
 
+void FileStore::deleteKey(const std::string& /* unused */) {
+  throw std::runtime_error("deleteKey not implemented for FileStore");
+}
+
 bool FileStore::check(const std::vector<std::string>& keys) {
   std::unique_lock<std::mutex> l(activeFileOpLock_);
   File file(path_, O_RDONLY, timeout_);

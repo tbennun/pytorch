@@ -81,6 +81,10 @@ int64_t HashStore::getNumKeys() {
   throw std::runtime_error("getNumKeys not implemented for HashStore");
 }
 
+void HashStore::deleteKey(const std::string& /* unused */) {
+  throw std::runtime_error("deleteKey not implemented for HashStore");
+}
+
 bool HashStore::check(const std::vector<std::string>& keys) {
   std::unique_lock<std::mutex> lock(m_);
   for (const auto& key : keys) {
