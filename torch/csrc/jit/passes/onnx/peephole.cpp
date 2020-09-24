@@ -1,6 +1,6 @@
-#include <torch/csrc/jit/passes/onnx/peephole.h>
 #include <c10/util/Exception.h>
 #include <torch/csrc/jit/passes/onnx/helper.h>
+#include <torch/csrc/jit/passes/onnx/peephole.h>
 
 #include <c10/util/Optional.h>
 
@@ -290,6 +290,7 @@ void pushPackingPastRnn(Block* b) {
 
     // and insert new PackPadded after the RNN
     Node* newPackPadded = b->owningGraph()->create(prim::PackPadded, 2);
+    newPackPadded->copyMetadata(n);
     newPackPadded->insertAfter(next);
 
     // make things consume from the new PackPadded
@@ -397,24 +398,29 @@ void fixDefaultRNNState(
   }
 
   Node* shape_of_input = graph->create(onnx::Shape, 1);
+  shape_of_input->copyMetadata(n);
   shape_of_input->insertBefore(n);
   shape_of_input->addInput(n->inputs()[0]);
 
   Node* gather_indices = graph->create(onnx::Constant, 1);
+  gather_indices->copyMetadata(n);
   gather_indices->insertBefore(n);
   gather_indices->t_(attr::value, at::scalar_to_tensor(at::Scalar(1)));
 
   Node* batch_size = graph->create(onnx::Gather, 1);
+  batch_size->copyMetadata(n);
   batch_size->insertBefore(n);
   batch_size->addInput(shape_of_input->outputs()[0]);
   batch_size->addInput(gather_indices->outputs()[0]);
 
   Node* unsqueezed_batch_size = graph->create(onnx::Unsqueeze, 1);
+  unsqueezed_batch_size->copyMetadata(n);
   unsqueezed_batch_size->insertBefore(n);
   unsqueezed_batch_size->addInput(batch_size->outputs()[0]);
   unsqueezed_batch_size->is_(attr::axes, {0});
 
   Node* hidden_size = graph->create(onnx::Constant, 1);
+  hidden_size->copyMetadata(n);
   hidden_size->insertBefore(n);
   hidden_size->t_(
       attr::value,
@@ -424,6 +430,7 @@ void fixDefaultRNNState(
           at::kLong)); // at::Scalar(n->i(attr::hidden_size)).toTensor());
 
   Node* num_directions = graph->create(onnx::Constant, 1);
+  num_directions->copyMetadata(n);
   num_directions->insertBefore(n);
   num_directions->t_(
       attr::value,
@@ -434,11 +441,13 @@ void fixDefaultRNNState(
               : 1)));
 
   Node* unsqueezed_num_directions = graph->create(onnx::Unsqueeze, 1);
+  unsqueezed_num_directions->copyMetadata(n);
   unsqueezed_num_directions->insertBefore(n);
   unsqueezed_num_directions->addInput(num_directions->outputs()[0]);
   unsqueezed_num_directions->is_(attr::axes, {0});
 
   Node* concated_dims = graph->create(onnx::Concat, 1);
+  concated_dims->copyMetadata(n);
   concated_dims->insertBefore(n);
   concated_dims->i_(attr::axis, 0);
   concated_dims->addInput(unsqueezed_num_directions->outputs()[0]);
@@ -446,6 +455,7 @@ void fixDefaultRNNState(
   concated_dims->addInput(hidden_size->outputs()[0]);
 
   Node* fixed_init_state = graph->create(onnx::Expand, 1);
+  fixed_init_state->copyMetadata(n);
   fixed_init_state->insertBefore(n);
   fixed_init_state->addInput(initial_state);
   fixed_init_state->addInput(concated_dims->outputs()[0]);
@@ -575,12 +585,14 @@ static void eraseListConstruct(Block* block, int opset_version) {
           Graph* g = block->owningGraph();
           for (auto* input : lc_node->inputs()) {
             Node* unsqueezed_node = g->create(onnx::Unsqueeze, 1);
+            unsqueezed_node->copyMetadata(n);
             unsqueezed_node->insertBefore(lc_node);
             unsqueezed_node->addInput(input);
             unsqueezed_node->is_(attr::axes, {0});
             unsqueezed.emplace_back(unsqueezed_node->output());
           }
           Node* concat_node = g->create(onnx::Concat, 1);
+          concat_node->copyMetadata(n);
           concat_node->i_(attr::axis, 0);
           for (auto v : unsqueezed) {
             concat_node->addInput(v);
@@ -607,6 +619,7 @@ static void eraseListConstruct(Block* block, int opset_version) {
                 : onnx::SequenceEmpty;
             Node* seq_node = block->owningGraph()->create(
                 seq_node_kind, {lc_node->inputs()}, 1);
+            seq_node->copyMetadata(n);
             seq_node->insertBefore(lc_node);
             seq_node->output()->copyMetadata(lc_node->output());
             lc_node->replaceAllUsesWith(seq_node);
@@ -757,6 +770,7 @@ static void fuseLogSoftmaxNllLoss(Block* b) {
       for (size_t i = 0; i < softmaxCrossEntropyNode->outputs().size(); ++i) {
         softmaxCrossEntropyNode->outputs()[i]->copyMetadata(it->outputs()[i]);
       }
+      softmaxCrossEntropyNode->copyMetadata(origNllLossNode);
       softmaxCrossEntropyNode->copyAttributes(*origNllLossNode);
       softmaxCrossEntropyNode->insertBefore(origNllLossNode);
       softmaxCrossEntropyNode->addInput(origLogSoftmaxNode->inputs().at(0));

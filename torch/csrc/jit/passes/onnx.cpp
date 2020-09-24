@@ -294,15 +294,27 @@ void BlockToONNX(
       py_inputs[input_nr++] = py::cast(envFn(input));
     }
 
+    Graph* g = ctx.block->owningGraph();
+    std::unordered_set<Node*> nodes_before;
+    for (auto node : g->nodes())
+      nodes_before.emplace(node);
+
     WithInsertPoint insert_point_guard(ctx.block);
-    WithCurrentScope scope_guard(*ctx.block->owningGraph(), n->scope());
+    WithCurrentScope scope_guard(*g, n->scope());
     py::object raw_output = onnx.attr("_run_symbolic_function")(
-        ctx.block->owningGraph(), n, py_inputs, env, operator_export_type);
+        g, n, py_inputs, env, operator_export_type);
+
+    // Find new nodes that have been created by _run_symbolic_function and
+    // propagate metadata
+    for (auto node : g->nodes()) {
+      if (nodes_before.find(node) == nodes_before.end())
+        node->copyMetadata(n);
+    }
 
     // TODO: Assert it's an ATen identifier???
     // (Sometimes it's not...)
     processSymbolicOutput(n->kind().toUnqualString(), n, raw_output);
-    GRAPH_DUMP("after process output:", ctx.block->owningGraph());
+    GRAPH_DUMP("after process output:", g);
   };
 
   auto callPySymbolicMethod = [&](ConcretePythonOp* op) {
